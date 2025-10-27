@@ -1,61 +1,179 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Payment API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based Payment API system that handles order payments and user credit points management.
 
-## About Laravel
+## Prerequisites
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP >= 8.2
+- Composer
+- Node.js & NPM
+- XAMPP (or similar local development environment)
+- Postman (for API testing)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Project Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Clone the repository:
+```bash
+git clone https://github.com/kholy98/payment-api.git
+cd payment-api
+```
 
-## Learning Laravel
+2. Install PHP dependencies:
+```bash
+composer install
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+3. Create environment file:
+```bash
+cp .env.example .env
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+4. Generate application key:
+```bash
+php artisan key:generate
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+5. Configure your database in `.env`:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=payment_api
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Laravel Sponsors
+6. Run database migrations:
+```bash
+php artisan migrate
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+7. Install frontend dependencies (if needed):
+```bash
+npm install
+npm run build
+```
 
-### Premium Partners
+8. Start the development server:
+```bash
+php artisan serve
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+The API will be available at `http://localhost:8000`
 
-## Contributing
+## API Testing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Manual Testing with Postman
 
-## Code of Conduct
+#### Payment Processing Endpoint
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **URL**: `POST /api/orders/{orderId}/pay`
+- **Headers**:
+  - `Accept: application/json`
+  - `Content-Type: application/json`
+- **Body**:
+```json
+{
+    "user_id": 1
+}
+```
 
-## Security Vulnerabilities
+#### Expected Responses
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. **Successful Payment**
+- Status: 200 OK
+```json
+{
+    "message": "Payment processed successfully.",
+    "order": {
+        "status": "paid"
+    }
+}
+```
 
-## License
+2. **Invalid Order Status**
+- Status: 400 Bad Request
+```json
+{
+    "message": "Order status is not pending. Payment cannot be processed."
+}
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+3. **Wrong User**
+- Status: 400 Bad Request
+```json
+{
+    "message": "Invalid user for this order.",
+    "errors": {
+        "user_id": ["The user ID does not match the order's user."]
+    }
+}
+```
+
+4. **Missing User ID**
+- Status: 422 Unprocessable Entity
+```json
+{
+    "message": "The user id field is required.",
+    "errors": {
+        "user_id": ["The user id field is required."]
+    }
+}
+```
+
+### Automated Testing
+
+The project includes comprehensive automated tests. To run the tests:
+
+```bash
+php artisan test
+```
+
+#### Test Cases
+
+1. `it_returns_successful_response_on_valid_payment`
+   - Creates a pending order
+   - Processes payment
+   - Verifies order status change to 'paid'
+   - Checks user credit points increase
+
+2. `it_returns_error_if_order_not_pending`
+   - Attempts to pay an already paid order
+   - Verifies error response
+
+3. `it_returns_validation_error_if_wrong_user`
+   - Attempts to pay an order with wrong user
+   - Verifies validation error response
+
+4. `it_validates_user_id_field`
+   - Attempts to pay without user_id
+   - Verifies validation error response
+
+## Business Rules
+
+- Orders must be in 'pending' status to process payment
+- Only the order's owner can process the payment
+- User receives bonus credit points after successful payment
+- Payment processing updates both order status and user credit points
+
+## Error Handling
+
+The API includes comprehensive error handling for:
+- Invalid order status
+- User validation
+- Missing required fields
+- Database transaction failures
+
+## Development
+
+For local development, you can use the following command to start all services:
+
+```bash
+composer run dev
+```
+
+This will start:
+- Laravel development server
+- Queue worker
+- Log watcher
+- Vite development server
